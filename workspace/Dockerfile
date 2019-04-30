@@ -680,37 +680,6 @@ RUN if [ ${INSTALL_LINUXBREW} = true ]; then \
     echo 'export LD_LIBRARY_PATH="$LINUXBREWHOME/lib64:$LINUXBREWHOME/lib:$LD_LIBRARY_PATH"' >> ~/.bashrc \
 ;fi
 
-###########################################################################
-# SQL SERVER:
-###########################################################################
-
-ARG INSTALL_MSSQL=false
-
-RUN set -eux; if [ ${INSTALL_MSSQL} = true ]; then \
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
-      apt-get -y install php5.6-sybase freetds-bin freetds-common libsybdb5 \
-      && php -m | grep -q 'mssql' \
-      && php -m | grep -q 'pdo_dblib' \
-    ;else \
-      ###########################################################################
-      #  The following steps were taken from
-      #  https://github.com/Microsoft/msphpsql/wiki/Install-and-configuration
-      ###########################################################################
-      curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-      curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
-      apt-get update -yqq && \
-      ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools unixodbc unixodbc-dev libgss3 odbcinst locales && \
-      ln -sfn /opt/mssql-tools/bin/sqlcmd /usr/bin/sqlcmd && \
-      ln -sfn /opt/mssql-tools/bin/bcp /usr/bin/bcp && \
-      echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
-      locale-gen && \
-      pecl install sqlsrv pdo_sqlsrv && \
-      echo "extension=sqlsrv.so"     > /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/20-sqlsrv.ini && \
-      echo "extension=pdo_sqlsrv.so" > /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/20-pdo_sqlsrv.ini \
-      && php -m | grep -q 'sqlsrv' \
-      && php -m | grep -q 'pdo_sqlsrv' \
-    ;fi \
-;fi
 
 ###########################################################################
 # Minio:
@@ -887,6 +856,50 @@ RUN if [ ${INSTALL_MYSQL_CLIENT} = true ]; then \
     apt-get -y install mysql-client \
 ;fi
 
+###########################################################################
+# SQL SERVER:
+###########################################################################
+
+ARG INSTALL_MSSQL=false
+
+COPY sources.list /etc/apt/
+RUN set -eux; if [ ${INSTALL_MSSQL} = true ]; then \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+      apt-get -y install php5.6-sybase freetds-bin freetds-common libsybdb5 \
+      && php -m | grep -q 'mssql' \
+      && php -m | grep -q 'pdo_dblib' \
+    ;else \
+      ###########################################################################
+      #  The following steps were taken from
+      #  https://github.com/Microsoft/msphpsql/wiki/Install-and-configuration
+      ###########################################################################
+      curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+      curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
+      apt-get update -yqq && \
+      ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools unixodbc unixodbc-dev libgss3 odbcinst locales && \
+      ln -sfn /opt/mssql-tools/bin/sqlcmd /usr/bin/sqlcmd && \
+      ln -sfn /opt/mssql-tools/bin/bcp /usr/bin/bcp && \
+      echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+      locale-gen && \
+      pecl install sqlsrv pdo_sqlsrv && \
+      echo "extension=sqlsrv.so"     > /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/20-sqlsrv.ini && \
+      echo "extension=pdo_sqlsrv.so" > /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/20-pdo_sqlsrv.ini \
+      && php -m | grep -q 'sqlsrv' \
+      && php -m | grep -q 'pdo_sqlsrv' \
+    ;fi \
+;fi
+###########################################################################
+# Xavxls Php Extension
+###########################################################################
+
+USER root
+COPY ./excel/Xavxls.so /usr/lib/php/20170718/
+COPY ./excel/libphpcpp.so.2.1.1 /usr/local/lib/
+#echo "extension=sqlsrv.so"     > /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/20-sqlsrv.ini && \
+#echo "extension=pdo_sqlsrv.so" > /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/20-pdo_sqlsrv.ini \
+COPY ./excel/libxlsreader.so.1.4.0 /usr/local/lib/
+COPY ./excel/Xavxls.ini /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/
+RUN /sbin/ldconfig
 ###########################################################################
 # Check PHP version:
 ###########################################################################
