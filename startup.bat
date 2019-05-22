@@ -1,2 +1,2 @@
-docker-compose up -d mysql nginx workspace
+docker-compose up -d nginx workspace
 docker-compose exec workspace bash
